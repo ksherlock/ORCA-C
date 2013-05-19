@@ -74,7 +74,7 @@ type
 var
    ch: char;                            {next character to process}
    macros: ^macroTable;                 {preprocessor macro list}
-   pathList: pathRecordPtr;		{addotional search paths}
+   pathList: pathRecordPtr;		{additional search paths}
    printMacroExpansions: boolean;       {print the token list?}
    reportEOL: boolean;                  {report eolsy as a token?}
    skipIllegalTokens: boolean;		{skip flagging illegal tokens in skipped code?}
@@ -574,7 +574,7 @@ if list or (numErr <> 0) then begin
          91: msg := @'real constants cannot be unsigned';
          92: msg := @'statement expected';
          93: msg := @'assignment to const is not allowed';
-         94: msg := @'pascal qualitfier is only allowed on functions';
+         94: msg := @'pascal qualifier is only allowed on functions';
          95: msg := @'unidentified operation code';
          96: msg := @'incorrect operand size';
          97: msg := @'operand syntax error';
@@ -2004,6 +2004,15 @@ var
          ple := nil;
          repeat                         {get the parameter names}
             done := true;
+
+	    if token.class = reservedWord then begin
+	       token.name := @reservedWords[token.kind];
+	       token.kind := ident;
+	       token.class := identifier;
+	       end {if}
+	    else if token.kind = typedef then
+	       token.kind := ident;
+
             if token.kind = ident then begin
                new(np);
                np^.next := nil;
@@ -2032,6 +2041,15 @@ var
          end; {else}
       mPtr^.parameters := parameters;   {record the # of parameters}
       while token.kind <> eolsy do begin {place tokens in the replace list...}
+
+	 if token.class = reservedWord then begin
+	    token.name := @reservedWords[token.kind];
+	    token.kind := ident;
+	    token.class := identifier;
+	    end {if}
+	 else if token.kind = typedef then
+	    token.kind := ident;
+
          if token.kind = ident then begin {special handling for identifiers}
             np := parameterList;        {change parameters to macroParm}
             pnum := 0;
@@ -3618,10 +3636,16 @@ if tokenList <> nil then begin          {get a token put back by a macro}
    dispose(tPtr);
    if token.kind = typedef then         {allow for typedefs in a macro}
       token.kind := ident;
+   if token.kind = ident then begin
+      CopyString(@workString, token.name);
+      CheckIdentifier;
+      end; {if}
+{ dead code
    if token.kind = ident then
       if FindSymbol(token,allSpaces,false,false) <> nil then
          if token.symbolPtr^.class = typedefsy then
             token.kind := typedef;
+}
 4:
    while (token.kind = stringconst)
       and (tokenList <> nil)

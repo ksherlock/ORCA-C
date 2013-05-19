@@ -1,7 +1,9 @@
-ORCA/C 2.1.0
-Copyright 1996, Byte Works Inc.
+ORCA/C 2.1.1
+Copyright 1997, Byte Works Inc.
 
 -- Change List --------------------------------------------------------------
+
+2.1.1       1.	Bugs squashed.  See bug notes, below.
 
 2.1.0       1.	Bugs squashed.  See bug notes, below.
 
@@ -24,6 +26,18 @@ Copyright 1996, Byte Works Inc.
 2.0.2       1.	Bugs squashed.  See bug notes, below.
 
 2.0.1       1.	Bugs squashed.  See bug notes, below.
+
+-- Bugs from C 2.1.1 B1 that have been fixed --------------------------------
+
+These bugs appeared in a beta release. They did not appear in any commercial release, but we introduced during bug corrections. These notes will be removed in the commercial release notes.
+
+1.  Reserved words appearing in macros were not correctly scanned.
+
+(Mike Westerfield)
+
+2.  The rewind() function failed when #pragma lint -1 was used.
+
+(Marsha Jackson)
 
 -- Manual Erratta -----------------------------------------------------------
 
@@ -261,6 +275,25 @@ You can also add all of the other optimizations except removal of stack repair c
    #pragma optimize 0x003F
 
 If you use #pragma debug 0x0010 to enable stack check debug code, the compiler will still flag variable argument functions that do not consume all arguments as a run-time error, even though ANSI C does allow them.
+
+-- Bugs from C 2.1.0 that have been fixed -----------------------------------
+
+1.  In some situations, fread() reread the first 1K or so of the file.
+
+(Devin Reade)
+
+2.  Typedef names used as macro parameters were not treated properly.
+
+(Devin Reade)
+
+3.  In the error message "pascal qualifier is only allowed on functions",
+qualifier was spelled qualtifier.
+
+(Kelvin Sherlock)
+
+4.  strtod() and atof() did not handle errors correctly when the input string contained leading whitespace and no valid numeric characters, or when the input string was the NULL pointer.
+
+(Dave Tribby)
 
 -- Bugs from C 2.0.3 that have been fixed -----------------------------------
 
