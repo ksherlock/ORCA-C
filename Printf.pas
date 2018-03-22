@@ -37,6 +37,12 @@ function FormatClassify(fname: stringPtr): fmt_type;
 
 implementation
 
+const
+  feature_hh = false;
+  feature_ll = false;
+  feature_s_long = false;
+  feature_n_size = false;
+
 type
     length_modifier = (default, h, hh, l, ll, j, z, t, ld);
 
@@ -304,8 +310,14 @@ var
   begin
     state := st_format;
     case c of
-    'h': begin has_length := h; state := st_length_h; end;
-    'l': begin has_length := l; state := st_length_l; end;
+    'h': begin 
+      has_length := h; 
+      if feature_hh then state := st_length_h; 
+      end;
+    'l': begin 
+      has_length := l; 
+      if feature_ll then state := st_length_l; 
+      end;
     'j': has_length := j;
     'z': has_length := z;
     't': has_length := t;
@@ -348,10 +360,14 @@ var
 
           '%': has_suppress := true;
           'c', 'b', 's', '[' :
-            { n.b. orca doesn't support %ls }
+            { n.b. orca doesn't support %ls (c99) }
             begin
               types := [cgByte, cgUByte];
               name := @'char';
+              if feature_s_long and (has_length = l) then begin
+                types := [cgWord, cgUWord];
+                name := @'wchar';
+              end;
               if c = '[' then state := st_set_1;
             end;
           'd', 'i', 'u', 'o', 'x', 'X':
@@ -366,12 +382,19 @@ var
             end;
           'n':
             begin
-                { ORCALib always treats n as int * }
-                { n.b. - *n is  undefined; orcalib pops a parm but doesn't store.}
-                if has_suppress then Warning(@'*n is undefined.');
-                types := [cgWord, cgUWord];
-                name := @'int';
-                has_suppress := false;
+              { ORCALib always treats n as int * }
+              { n.b. - *n is  undefined; orcalib pops a parm but doesn't store.}
+              { C99 - support for length modifiers }
+              if has_suppress then Warning(@'*n is undefined.');
+
+              if feature_n_size then case has_length of
+                hh: begin types := [cgByte, cgUByte]; name := @'char'; end;
+                l, ll, j, z, t: begin types := [cgLong, cgULong]; name := @'long'; end;
+                otherwise ;
+              end;
+              types := [cgWord, cgUWord];
+              name := @'int';
+              has_suppress := false;
               end;
             'p':
               begin
@@ -515,10 +538,26 @@ var
            { %b: orca-specific - pascal string }
           'p': expect_pointer;
 
-          'b', 's': expect_pointer_to([cgByte, cgUByte], @'char');
+          'b', 's':
+            if feature_s_long and (has_length = l) then
+              expect_pointer_to([cgWord, cgUWord], @'wchar')
+            else expect_pointer_to([cgByte, cgUByte], @'char');
 
-          'n': expect_pointer_to([cgWord, cgUWord], @'int');
+          'n':
+            begin
+              if feature_n_size then case has_length of
+                hh:
+                  expect_pointer_to([cgByte, cgUByte], @'char');
+                l, ll, j, z, t:
+                  expect_pointer_to([cgLong, cgULong], @'long');
+                otherwise
+                  expect_pointer_to([cgWord, cgUWord], @'int');
+              end else
+                expect_pointer_to([cgWord, cgUWord], @'int');
 
+            end;
+
+          { chars are passed as ints so %lc and %hhx can be ignored. }
           'c': expect_char;
 
           'd', 'i', 'o', 'x', 'X', 'u':
