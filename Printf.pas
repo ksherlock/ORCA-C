@@ -82,7 +82,7 @@ begin
       else if fname^ = 'snprintf' then FormatClassify := fmt_printf3
       else if fname^ = 'sprintf' then FormatClassify := fmt_printf2
       else if fname^ = 'sscanf' then FormatClassify := fmt_scanf2;
-      otherwise:
+      otherwise ;
   end;
 end;
 
@@ -346,13 +346,18 @@ var
 
           '%': has_suppress := true;
           'c', 'b', 's', '[' :
-            { n.b. orca doesn't support %ls (c99) }
+            { %ls, etc is a wchar_t *}
             begin
               types := [cgByte, cgUByte];
               name := @'char';
-              if feature_s_long and (has_length = l) then begin
+
+              if has_length = l then begin
                 types := [cgWord, cgUWord];
                 name := @'wchar';
+
+                if not feature_s_long then
+                  Warning(@'%ls not currently supported');
+
               end;
               if c = '[' then state := st_set_1;
             end;
@@ -527,8 +532,12 @@ var
           'p': expect_pointer;
 
           'b', 's':
-            if feature_s_long and (has_length = l) then
+            if has_length = l then begin
+              if not feature_s_long then 
+                Warning(@'%ls not currently supported.');
+
               expect_pointer_to([cgWord, cgUWord], @'wchar')
+            end
             else expect_pointer_to([cgByte, cgUByte], @'char');
 
           'n':
@@ -545,9 +554,15 @@ var
 
             end;
 
-          { chars are passed as ints so %lc and %hhx can be ignored. }
-          'c': expect_char;
+          'c':
+            if has_length = l then begin
+              if not feature_s_long then Warning(@'%lc not currently supported');
+              expect_int;
+            end else begin
+              expect_char;
+            end;
 
+          { chars are passed as ints so %hhx can be ignored here. }
           'd', 'i', 'o', 'x', 'X', 'u':
             if has_length in [l, ll, j, z, t] then begin
               expect_long;
