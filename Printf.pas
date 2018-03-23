@@ -55,6 +55,8 @@ type
 
     bt_set = set of baseTypeEnum;
 
+procedure Error (err: integer); extern; {in scanner.pas}
+
 
 {
   Check if a string is printf/scanf. Caller must check if
@@ -103,24 +105,6 @@ var
   length_set : set of char;
   format_set : set of char;
 
-  { Write the current line. copied from Scanner.pas }
-  procedure WriteLine;
-  const
-    RETURN       = 13;
-  var
-    cp: ptr;
-  begin
-
-    write(lineNumber:4, ' ');            {write the line #}
-    cp := firstPtr;                      {write the characters in the line}
-    while cp <> chPtr do begin
-      if cp^ <> RETURN then
-      write(chr(cp^));
-      cp := pointer(ord4(cp) + 1);
-    end; {while}
-    writeln;                             {write the end of line character}
-
-  end;
 
   {
     Print a warning.  offset is the location of the current % character.
@@ -131,14 +115,16 @@ var
     c: char;
   begin
     if not printed then begin
-      WriteLine;
-      Write('     "');
-      for i := 1  to s^.length do begin
-        c := s^.str[i];
-        if (c = '"') or (ord(c) < $20) or (ord(c) > $7f) then c := '.';
-        Write(c);
+      Error(124);
+      if s <> nil then begin
+        Write('     "');
+        for i := 1  to s^.length do begin
+          c := s^.str[i];
+          if (c = '"') or (ord(c) < $20) or (ord(c) > $7f) then c := '.';
+          Write(c);
+        end;
+        WriteLn('"');
       end;
-      WriteLn('"');
       printed := true;
     end;
     Write('     ');
@@ -704,8 +690,8 @@ var
       if (tk <> nil) and (tk^.token.kind = stringconst) then
         get_format_string := tk^.token.sval
       else
-        Warning(@'format string is not a string literal')
-    end else Warning(@'format string missing');
+        Error(125);
+    end; { no format string -> Error(85) }
   end;
 
 
