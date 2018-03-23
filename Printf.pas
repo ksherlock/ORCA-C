@@ -298,11 +298,11 @@ var
     case c of
     'h': begin 
       has_length := h; 
-      if feature_hh then state := st_length_h; 
+      state := st_length_h; 
       end;
     'l': begin 
       has_length := l; 
-      if feature_ll then state := st_length_l; 
+      state := st_length_l; 
       end;
     'j': has_length := j;
     'z': has_length := z;
@@ -463,13 +463,15 @@ var
         if c = 'h' then begin
           has_length := hh;
           state := st_format;
+          if not feature_hh then Warning(@'hh modifier not currently supported');
         end else do_scanf_format;
 
       st_length_l: { l? format }
         if c = 'l' then begin
           has_length := ll;
           state := st_format;
-        end else do_scanf_format;    
+          if not feature_ll then Warning(@'ll modifier not currently supported');
+        end else do_scanf_format;
 
       st_format: { format }
         do_scanf_format;
@@ -642,11 +644,19 @@ var
           else do_printf_format;
 
         st_length_h: { h? format }
-          if c = 'h' then begin has_length := hh; state := st_format; end
+          if c = 'h' then begin
+            has_length := hh;
+            state := st_format;
+            if not feature_hh then Warning(@'hh modifier not currently supported');
+          end
           else do_printf_format;
 
         st_length_l: { l? format}
-          if c = 'l' then begin has_length := ll; state := st_format; end
+          if c = 'l' then begin
+            has_length := ll;
+            state := st_format;
+            if not feature_ll then Warning(@'ll modifier not currently supported');
+          end
           else do_printf_format;
 
         st_format: do_printf_format;
