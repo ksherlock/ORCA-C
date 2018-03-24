@@ -53,7 +53,7 @@ type
       st_suppress, st_set, st_set_1, st_set_2,
       st_error);
 
-    bt_set = set of baseTypeEnum;
+    types = set of baseTypeEnum;
 
 procedure Error (err: integer); extern; {in scanner.pas}
 
@@ -251,7 +251,7 @@ var
   end;
 
   { expect a pointer to a specific type }
-  procedure expect_pointer_to(types: bt_set; name: stringPtr);
+  procedure expect_pointer_to(expected: types; name: stringPtr);
 
   var
     ty: typePtr;
@@ -279,7 +279,7 @@ var
         baseTy := ty^.pType;
         if (baseTy <> nil)
           and (baseTy^.kind = scalarType)
-          and (baseTy^.baseType in types)
+          and (baseTy^.baseType in expected)
           then ok := true;
       end;
 
@@ -321,8 +321,7 @@ var
     i: integer;
     c: char;
     has_suppress: boolean;
-    types: bt_set;
-    name: stringPtr;
+
 
 
     procedure do_scanf_format;
@@ -335,6 +334,9 @@ var
       - L not supported
       - ignored for 'n'
     }
+    var
+      expected: types;
+      name: stringPtr;
     begin
 
       name := nil;
@@ -348,11 +350,11 @@ var
           'c', 'b', 's', '[' :
             { %ls, etc is a wchar_t *}
             begin
-              types := [cgByte, cgUByte];
+              expected := [cgByte, cgUByte];
               name := @'char';
 
               if has_length = l then begin
-                types := [cgWord, cgUWord];
+                expected := [cgWord, cgUWord];
                 name := @'wchar';
 
                 if not feature_s_long then
@@ -363,11 +365,11 @@ var
             end;
           'd', 'i', 'u', 'o', 'x', 'X':
             begin
-              types := [cgWord, cgUWord];
+              expected := [cgWord, cgUWord];
               name := @'int';
               case has_length of
-                hh: begin types := [cgByte, cgUByte]; name := @'char'; end;
-                l, ll, j, z, t: begin types := [cgLong, cgULong]; name := @'long'; end;
+                hh: begin expected := [cgByte, cgUByte]; name := @'char'; end;
+                l, ll, j, z, t: begin expected := [cgLong, cgULong]; name := @'long'; end;
                 otherwise ; 
               end;
             end;
@@ -385,17 +387,17 @@ var
               case has_length of
                 hh:
                   begin
-                    types := [cgByte, cgUByte];
+                    expected := [cgByte, cgUByte];
                     name := @'char';
                   end;
                 l, ll, j, z, t:
                   begin
-                    types := [cgLong, cgULong];
+                    expected := [cgLong, cgULong];
                     name := @'long';
                   end;
                 otherwise
                   begin
-                    types := [cgWord, cgUWord];
+                    expected := [cgWord, cgUWord];
                     name := @'int';
                   end;
               end;
@@ -407,18 +409,18 @@ var
             end;
           'a', 'A', 'f', 'F', 'g', 'G', 'e', 'E':
             begin
-              types := [cgReal];
+              expected := [cgReal];
               name := @'float';
               case has_length of
-              ld: begin types := [cgExtended]; name := @'long double'; end;
-              l: begin types := [cgDouble]; name := @'double'; end;
+              ld: begin expected := [cgExtended]; name := @'long double'; end;
+              l: begin expected := [cgDouble]; name := @'double'; end;
               otherwise ; 
             end;
           end;
         end; { case }
 
         if not has_suppress then begin
-          expect_pointer_to(types, name);
+          expect_pointer_to(expected, name);
         end;
 
       end {if}
