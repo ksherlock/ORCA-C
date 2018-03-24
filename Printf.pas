@@ -38,7 +38,7 @@ function FormatClassify(fname: stringPtr): fmt_type;
 implementation
 
 const
-  feature_hh = false;
+  feature_hh = true;
   feature_ll = false;
   feature_s_long = false;
   feature_n_size = false;
@@ -377,31 +377,44 @@ var
               { n.b. - *n is  undefined; orcalib pops a parm but doesn't store.}
               { C99 - support for length modifiers }
               if has_suppress then Warning(@'*n is undefined.');
-
-              if feature_n_size then case has_length of
-                hh: begin types := [cgByte, cgUByte]; name := @'char'; end;
-                l, ll, j, z, t: begin types := [cgLong, cgULong]; name := @'long'; end;
-                otherwise ;
-              end;
-              types := [cgWord, cgUWord];
-              name := @'int';
               has_suppress := false;
-              end;
-            'p':
-              begin
-                if not has_suppress then expect_pointer;
-                has_suppress := true;
-              end;
-            'a', 'A', 'f', 'F', 'g', 'G', 'e', 'E':
-              begin
-                types := [cgReal];
-                name := @'float';
-                case has_length of
-                ld: begin types := [cgExtended]; name := @'long double'; end;
-                l: begin types := [cgDouble]; name := @'double'; end;
-                otherwise ; 
+
+              if (not feature_n_size) and (has_length <> default) then
+                Warning(@'size modifier for %n not currently supported.');
+
+              case has_length of
+                hh:
+                  begin
+                    types := [cgByte, cgUByte];
+                    name := @'char';
+                  end;
+                l, ll, j, z, t:
+                  begin
+                    types := [cgLong, cgULong];
+                    name := @'long';
+                  end;
+                otherwise
+                  begin
+                    types := [cgWord, cgUWord];
+                    name := @'int';
+                  end;
               end;
             end;
+          'p':
+            begin
+              if not has_suppress then expect_pointer;
+              has_suppress := true;
+            end;
+          'a', 'A', 'f', 'F', 'g', 'G', 'e', 'E':
+            begin
+              types := [cgReal];
+              name := @'float';
+              case has_length of
+              ld: begin types := [cgExtended]; name := @'long double'; end;
+              l: begin types := [cgDouble]; name := @'double'; end;
+              otherwise ; 
+            end;
+          end;
         end; { case }
 
         if not has_suppress then begin
@@ -542,15 +555,19 @@ var
 
           'n':
             begin
-              if feature_n_size then case has_length of
+
+              if (not feature_n_size) and (has_length <> default) then
+                Warning(@'size modifier for %n not currently supported.');
+
+              case has_length of
                 hh:
                   expect_pointer_to([cgByte, cgUByte], @'char');
                 l, ll, j, z, t:
-                  expect_pointer_to([cgLong, cgULong], @'long');
+                    expect_pointer_to([cgLong, cgULong], @'long');
+ 
                 otherwise
                   expect_pointer_to([cgWord, cgUWord], @'int');
-              end else
-                expect_pointer_to([cgWord, cgUWord], @'int');
+              end;
 
             end;
 
@@ -592,8 +609,6 @@ var
       flag_set := ['#', '0', '-', '+', ' '];
       format_set := ['%', 'b', 'c', 's', 'd', 'i', 'o', 'x', 'X', 'u', 
         'f', 'F', 'e', 'E', 'a', 'A', 'g', 'G', 'n', 'p'];
-
-      if s^.length = 0 then Warning('format string is empty.');
 
       for i := 1 to s^.length do begin
         c := s^.str[i];
